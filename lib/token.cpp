@@ -1951,10 +1951,22 @@ static bool removeContradiction(std::list<ValueFlow::Value>& values)
                 (x.bound != ValueFlow::Value::Bound::Point && y.bound != ValueFlow::Value::Bound::Point)) {
                 const bool removex = !x.isImpossible() || y.isKnown();
                 const bool removey = !y.isImpossible() || x.isKnown();
-                if (removex)
+                if (removex) {
+#ifdef _GLIBCXX_DEBUG
+                    ValueFlow::Value v(x);
+                    values.remove(v);
+#else
                     values.remove(x);
-                if (removey)
+#endif
+                }
+                if (removey) {
+#ifdef _GLIBCXX_DEBUG
+                    ValueFlow::Value v(y);
+                    values.remove(v);
+#else
                     values.remove(y);
+#endif
+                }
                 return true;
             } else if (x.bound == ValueFlow::Value::Bound::Point) {
                 y.decreaseRange();
