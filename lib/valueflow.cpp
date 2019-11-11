@@ -1785,7 +1785,8 @@ struct ValueFlowAnalyzer : Analyzer {
         return 0;
     }
 
-    virtual bool isGlobal() const {
+    // FIXME change the name
+    virtual bool isGlobal(const Token* /* tok */) const {
         return false;
     }
 
@@ -1954,7 +1955,7 @@ struct ValueFlowAnalyzer : Analyzer {
                 return a;
         } else if (Token::Match(tok, "%name% (") && !Token::simpleMatch(tok->linkAt(1), ") {")) {
             // bailout: global non-const variables
-            if (isGlobal()) {
+            if (isGlobal(tok)) {
                 return Action::Invalid;
             }
         }
@@ -2058,8 +2059,8 @@ struct SingleValueFlowAnalyzer : ValueFlowAnalyzer {
         if (value.isLifetimeValue())
             return false;
         for (const auto& m: {
-        std::ref(getVars()), std::ref(getAliasedVars())
-        }) {
+                 std::ref(getVars()), std::ref(getAliasedVars())
+             }) {
             for (const auto& p:m.get()) {
                 nonneg int varid = p.first;
                 const Variable* var = p.second;
@@ -2072,7 +2073,7 @@ struct SingleValueFlowAnalyzer : ValueFlowAnalyzer {
         return false;
     }
 
-    virtual bool isGlobal() const OVERRIDE {
+    virtual bool isGlobal(const Token* /* tok */) const OVERRIDE {
         for (const auto&p:getVars()) {
             const Variable* var = p.second;
             if (!var->isLocal() && !var->isArgument() && !var->isConst())
@@ -2162,6 +2163,26 @@ struct VariableAnalyzer : SingleValueFlowAnalyzer {
         ProgramState ps;
         ps[var->declarationId()] = value;
         return ps;
+    }
+
+
+    virtual bool isGlobal(const Token* tok) const OVERRIDE {
+        if (var->isConst() || var->isArgument())
+            return false;
+        if (tok->function() && !var->isLocal() && !tok->function()->isConst()) {
+            if (tok->function()->functionScope)
+                // FIXME: isVariableChanged does not check nested calls...
+                return isVariableChanged(tok->function()->functionScope->bodyStart,
+                                         tok->function()->functionScope->bodyEnd, var->nameToken()->varId(),
+                                         !var->isLocal(), getSettings(), tokenlist->isCPP());
+            else
+                // assume that var is changed
+                return true;
+        }
+        if (var->isGlobal()) {
+            return true;
+        }
+        return false;
     }
 };
 
@@ -2291,7 +2312,7 @@ struct ExpressionAnalyzer : SingleValueFlowAnalyzer {
         return isSameExpression(isCPP(), true, expr, tok, getSettings()->library, true, true);
     }
 
-    virtual bool isGlobal() const OVERRIDE {
+    virtual bool isGlobal(const Token* /* tok */) const OVERRIDE {
         return !local;
     }
 };
@@ -4938,7 +4959,7 @@ struct MultiValueFlowAnalyzer : ValueFlowAnalyzer {
         return false;
     }
 
-    virtual bool isGlobal() const OVERRIDE {
+    virtual bool isGlobal(const Token* /* tok */) const OVERRIDE {
         return false;
     }
 
