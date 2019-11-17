@@ -1317,6 +1317,22 @@ static bool isUnusedVariable(const Variable *var)
     return !Token::findmatch(start->next(), "%varid%", var->scope()->bodyEnd, var->declarationId());
 }
 
+static bool constructorCalledWithNonConstRef(const Scope * const classScope, int argNb)
+{
+    return true;
+    for (const Function &constructor : classScope->functionList) {
+        if (constructor.isConstructor()) {
+            for (int argnr = 0U; argnr < constructor.argCount(); argnr++) {
+                const Variable * const argVar = constructor.getArgumentVar(argnr);
+                if (argVar && argVar->isReference()) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
 static bool isVariableMutableInInitializer(const Token* start, const Token * end, nonneg int varid)
 {
     if (!start)
@@ -1328,9 +1344,10 @@ static bool isVariableMutableInInitializer(const Token* start, const Token * end
             continue;
         if (tok->astParent()) {
             const Token * memberTok = tok->astParent()->previous();
+            fprintf(stderr, "tok %s parent %s %s \n", tok->str().c_str(), tok->astParent()->str().c_str(), memberTok->str().c_str());
             if (Token::Match(memberTok, "%var% (") && memberTok->variable()) {
                 const Variable * memberVar = memberTok->variable();
-                if (memberVar->isClass())
+                if (memberVar->isClass() && constructorCalledWithNonConstRef(memberVar->typeScope(), 0))
                     //TODO: check if the called constructor could live with a const variable
                     // pending that, assume the worst (that it can't)
                     return true;
