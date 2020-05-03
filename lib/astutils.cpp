@@ -1193,11 +1193,11 @@ bool isOppositeCond(bool isNot, bool cpp, const Token * const cond1, const Token
 
     if (!isNot && cond1->str() == "&&" && cond2->str() == "&&") {
         for (const Token* tok1: {
-        cond1->astOperand1(), cond1->astOperand2()
-        }) {
+                 cond1->astOperand1(), cond1->astOperand2()
+             }) {
             for (const Token* tok2: {
-            cond2->astOperand1(), cond2->astOperand2()
-            }) {
+                     cond2->astOperand1(), cond2->astOperand2()
+                 }) {
                 if (isSameExpression(cpp, true, tok1, tok2, library, pure, followVar, errors)) {
                     if (isOppositeCond(isNot, cpp, tok1->astSibling(), tok2->astSibling(), library, pure, followVar, errors))
                         return true;
@@ -1900,7 +1900,7 @@ static std::function<R()> memoize(F f)
     };
 }
 
-Token* findVariableChanged(Token *start, const Token *end, int indirect, const nonneg int exprid, bool globalvar, const Settings *settings, bool cpp, int depth)
+Token* findVariableChanged(Token *start, const Token *end, int indirect, const nonneg int exprid, bool nonLocal, const Settings *settings, bool cpp, int depth)
 {
     if (!precedes(start, end))
         return nullptr;
@@ -1909,9 +1909,15 @@ Token* findVariableChanged(Token *start, const Token *end, int indirect, const n
     auto getExprTok = memoize([&] { return findExpression(start, exprid); });
     for (Token *tok = start; tok != end; tok = tok->next()) {
         if (tok->exprId() != exprid) {
-            if (globalvar && Token::Match(tok, "%name% ("))
-                // TODO: Is global variable really changed by function call?
-                return tok;
+            if (nonLocal && Token::Match(tok, "%name% (")) {
+                if (tok->function() && tok->function()->functionScope)
+                    return findVariableChanged(const_cast<Token*>(tok->function()->functionScope->bodyStart),
+                                               tok->function()->functionScope->bodyEnd, indirect, exprid,
+                                               nonLocal, settings, cpp, depth - 1);
+                else
+                    return tok;
+            }
+
             // Is aliased function call
             if (Token::Match(tok, "%var% (") && std::any_of(tok->values().begin(), tok->values().end(), std::mem_fn(&ValueFlow::Value::isLifetimeValue))) {
                 bool aliased = false;

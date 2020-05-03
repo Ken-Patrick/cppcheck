@@ -4241,6 +4241,42 @@ private:
               "  }\n"
               "}\n");
         ASSERT_EQUALS("[test.cpp:18]: (style) Condition '!x' is always true\n", errout.str());
+
+        check("#include <memory>\n"
+              "\n"
+              "bool h();\n"
+              "\n"
+              "class C\n"
+              "{\n"
+              "public:\n"
+              "  void f();\n"
+              "  void g();\n"
+              "  void g2();\n"
+              "\n"
+              "  std::shared_ptr<int> x;\n"
+              "};\n"
+              "\n"
+              "void C::g()\n"
+              "{\n"
+              " g2();\n"
+              "}\n"
+              "void C::g2()\n"
+              "{\n"
+              "  if (h()) {\n"
+              "    x.reset(new int);\n"
+              "  }\n"
+              "}\n"
+              "\n"
+              "void C::f()\n"
+              "{\n"
+              "  x.reset();\n"
+              "  g();\n"
+              "  if (!x) {\n"
+              "  }\n"
+              "}\n");
+        ASSERT_EQUALS("", errout.str());
+
+
     }
 };
 

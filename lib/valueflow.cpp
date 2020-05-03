@@ -2171,7 +2171,6 @@ struct VariableAnalyzer : SingleValueFlowAnalyzer {
             return false;
         if (tok->function() && !var->isLocal() && !tok->function()->isConst()) {
             if (tok->function()->functionScope)
-                // FIXME: isVariableChanged does not check nested calls...
                 return isVariableChanged(tok->function()->functionScope->bodyStart,
                                          tok->function()->functionScope->bodyEnd, var->nameToken()->varId(),
                                          !var->isLocal(), getSettings(), tokenlist->isCPP());
