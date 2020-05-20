@@ -7,6 +7,8 @@ import os
 def find_cppcheck_binary():
     possible_locations = [
         "./cppcheck",
+        "./buildsan/bin/cppcheck",
+        "./bin/cppcheck",
         "./build/bin/cppcheck",
         r".\bin\cppcheck.exe",
     ]
