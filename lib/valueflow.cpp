@@ -2276,8 +2276,8 @@ struct SingleValueFlowAnalyzer : ValueFlowAnalyzer {
         if (value.isLifetimeValue())
             return false;
         for (const auto& m: {
-        std::ref(getVars()), std::ref(getAliasedVars())
-        }) {
+                 std::ref(getVars()), std::ref(getAliasedVars())
+             }) {
             for (const auto& p:m.get()) {
                 nonneg int varid = p.first;
                 const Variable* var = p.second;
