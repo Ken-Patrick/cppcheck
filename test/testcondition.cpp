@@ -121,6 +121,8 @@ private:
         TEST_CASE(duplicateConditionalAssign);
 
         TEST_CASE(smartpointer);
+
+        TEST_CASE(FP_not_condition);
     }
 
     void check(const char code[], const char* filename = "test.cpp", bool inconclusive = false) {
@@ -4228,6 +4230,34 @@ private:
         ASSERT_EQUALS("", errout.str());
 
 
+    }
+
+    void FP_not_condition() {
+        check(
+            "int f(int a, int b, bool c) {\n"
+            "  if (a == 6 && (!(b == 21 && c))) {\n"
+            "  } else {\n"
+            "    if (c) {\n"
+            "    }\n"
+            "  }\n"
+            "\n"
+            "  return 0;\n"
+            "}\n"
+        );
+        ASSERT_EQUALS("", errout.str());
+
+        check(
+            "int f(int a, int b, bool c) {\n"
+            "  if (a == 6 && ((b != 21) || !c)) {\n"
+            "  } else {\n"
+            "    if (c) {\n"
+            "    }\n"
+            "  }\n"
+            "\n"
+            "  return 2;\n"
+            "}\n"
+        );
+        ASSERT_EQUALS("", errout.str());
     }
 };
 
