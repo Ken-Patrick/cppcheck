@@ -19,10 +19,12 @@ endif()
 
 if(ANALYZE_UNDEFINED)
     add_compile_options(-fsanitize=undefined)
+    add_compile_options(-fsanitize=nullability)
+    add_compile_options(-fsanitize=integer)
     add_compile_options(-fno-sanitize-recover=all)
     add_compile_options(-fno-omit-frame-pointer)
 
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=undefined")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=undefined -fsanitize=integer -fsanitize=nullability")
 endif()
 
 if(ANALYZE_DATAFLOW)
