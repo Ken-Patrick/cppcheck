@@ -1518,7 +1518,7 @@ bool CheckUnusedVar::isRecordTypeWithoutSideEffects(const Type* type)
                     }
                     const Function* initValueFunc = valueToken->function();
                     if (initValueFunc && !isFunctionWithoutSideEffects(*initValueFunc, valueToken,
-                    std::list<const Function*> {})) {
+                            std::list<const Function*> {})) {
                         return withoutSideEffects = false;
                     }
                 }
