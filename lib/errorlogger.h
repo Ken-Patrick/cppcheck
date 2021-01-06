@@ -27,6 +27,7 @@
 
 #include <cstddef>
 #include <fstream>
+#include <functional>
 #include <list>
 #include <string>
 #include <utility>
@@ -196,8 +197,22 @@ public:
     CWE cwe;
     bool inconclusive;
 
+    class Hash {
+    public:
+        Hash(std::function<std::size_t()> computation): mComputation(computation), mComputed(false) {}
+
+        Hash(std::size_t hash = 0):mHash(hash), mComputed(true) {}
+
+        std::size_t getHash() const;
+    private:
+        mutable std::size_t mHash;
+        std::function<std::size_t()> mComputation;
+        mutable bool mComputed;
+
+    };
+
     /** Warning hash */
-    std::size_t hash;
+    Hash hash;
 
     /** set short and verbose messages */
     void setmsg(const std::string &msg);

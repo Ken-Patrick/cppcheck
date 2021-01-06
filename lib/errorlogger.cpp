@@ -66,6 +66,16 @@ static std::size_t calculateWarningHash(const TokenList *tokenList, const std::s
     return std::hash<std::string> {}(msg + "\n" + tokenList->front()->stringifyList(false, true, false, false, false));
 }
 
+std::size_t ErrorMessage::Hash::getHash() const
+{
+    if (mComputed)
+        return mHash;
+
+    mHash = mComputation();
+    mComputed = true;
+    return mHash;
+}
+
 ErrorMessage::ErrorMessage()
     : incomplete(false), severity(Severity::none), cwe(0U), inconclusive(false), hash(0)
 {
@@ -141,8 +151,11 @@ ErrorMessage::ErrorMessage(const std::list<const Token*>& callstack, const Token
     for (const Token *tok: callstack)
         hashWarning << std::hex << (tok ? tok->index() : 0) << " ";
     hashWarning << mShortMessage;
+    std::string s = hashWarning.str();
 
-    hash = calculateWarningHash(list, hashWarning.str());
+    hash = Hash([=]() {
+        return calculateWarningHash(list, s);
+    });
 }
 
 ErrorMessage::ErrorMessage(const ErrorPath &errorPath, const TokenList *tokenList, Severity::SeverityType severity, const char id[], const std::string &msg, const CWE &cwe, bool inconclusive)
@@ -174,7 +187,10 @@ ErrorMessage::ErrorMessage(const ErrorPath &errorPath, const TokenList *tokenLis
         hashWarning << std::hex << (e.first ? e.first->index() : 0) << " ";
     hashWarning << mShortMessage;
 
-    hash = calculateWarningHash(tokenList, hashWarning.str());
+    std::string s = hashWarning.str();
+    hash =Hash([=]() {
+        return calculateWarningHash(tokenList, s);
+    });
 }
 
 ErrorMessage::ErrorMessage(const tinyxml2::XMLElement * const errmsg)
@@ -204,7 +220,10 @@ ErrorMessage::ErrorMessage(const tinyxml2::XMLElement * const errmsg)
     mVerboseMessage = attr ? attr : "";
 
     attr = errmsg->Attribute("hash");
-    std::istringstream(attr ? attr : "0") >> hash;
+    std::size_t xmlHash;
+    std::istringstream(attr ? attr : "0") >> xmlHash;
+    Hash h{xmlHash};
+    hash = h;
 
     for (const tinyxml2::XMLElement *e = errmsg->FirstChildElement(); e; e = e->NextSiblingElement()) {
         if (std::strcmp(e->Name(),"location")==0) {
@@ -251,7 +270,7 @@ void ErrorMessage::setmsg(const std::string &msg)
 Suppressions::ErrorMessage ErrorMessage::toSuppressionsErrorMessage() const
 {
     Suppressions::ErrorMessage ret;
-    ret.hash = hash;
+    ret.hash = hash.getHash();
     ret.errorId = id;
     if (!callStack.empty()) {
         ret.setFileName(callStack.back().getfile(false));
@@ -270,7 +289,7 @@ std::string ErrorMessage::serialize() const
     oss << id.length() << " " << id;
     oss << Severity::toString(severity).length() << " " << Severity::toString(severity);
     oss << MathLib::toString(cwe.id).length() << " " << MathLib::toString(cwe.id);
-    oss << MathLib::toString(hash).length() << " " << MathLib::toString(hash);
+    oss << MathLib::toString(hash.getHash()).length() << " " << MathLib::toString(hash.getHash());
     if (inconclusive) {
         const std::string text("inconclusive");
         oss << text.length() << " " << text;
@@ -325,7 +344,10 @@ bool ErrorMessage::deserialize(const std::string &data)
     id = results[0];
     severity = Severity::fromString(results[1]);
     std::istringstream(results[2]) >> cwe.id;
-    std::istringstream(results[3]) >> hash;
+    std::size_t deserializedHash;
+    std::istringstream(results[3]) >> deserializedHash;
+    Hash h{deserializedHash};
+    hash = h;
     mShortMessage = results[4];
     mVerboseMessage = results[5];
 
@@ -434,8 +456,8 @@ std::string ErrorMessage::toXML() const
     printer.PushAttribute("verbose", fixInvalidChars(mVerboseMessage).c_str());
     if (cwe.id)
         printer.PushAttribute("cwe", cwe.id);
-    if (hash)
-        printer.PushAttribute("hash", MathLib::toString(hash).c_str());
+    if (hash.getHash())
+        printer.PushAttribute("hash", MathLib::toString(hash.getHash()).c_str());
     if (inconclusive)
         printer.PushAttribute("inconclusive", "true");
 
