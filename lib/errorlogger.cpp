@@ -66,16 +66,6 @@ static std::size_t calculateWarningHash(const TokenList *tokenList, const std::s
     return std::hash<std::string> {}(msg + "\n" + tokenList->front()->stringifyList(false, true, false, false, false));
 }
 
-std::size_t ErrorMessage::Hash::getHash() const
-{
-    if (mComputed)
-        return mHash;
-
-    mHash = mComputation();
-    mComputed = true;
-    return mHash;
-}
-
 ErrorMessage::ErrorMessage()
     : incomplete(false), severity(Severity::none), cwe(0U), inconclusive(false), hash(0)
 {
@@ -270,7 +260,7 @@ void ErrorMessage::setmsg(const std::string &msg)
 Suppressions::ErrorMessage ErrorMessage::toSuppressionsErrorMessage() const
 {
     Suppressions::ErrorMessage ret;
-    ret.hash = hash.getHash();
+    ret.hash = hash;
     ret.errorId = id;
     if (!callStack.empty()) {
         ret.setFileName(callStack.back().getfile(false));

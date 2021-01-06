@@ -27,7 +27,6 @@
 
 #include <cstddef>
 #include <fstream>
-#include <functional>
 #include <list>
 #include <string>
 #include <utility>
@@ -196,20 +195,6 @@ public:
     Severity::SeverityType severity;
     CWE cwe;
     bool inconclusive;
-
-    class Hash {
-    public:
-        Hash(std::function<std::size_t()> computation): mComputation(computation), mComputed(false) {}
-
-        Hash(std::size_t hash = 0):mHash(hash), mComputed(true) {}
-
-        std::size_t getHash() const;
-    private:
-        mutable std::size_t mHash;
-        std::function<std::size_t()> mComputation;
-        mutable bool mComputed;
-
-    };
 
     /** Warning hash */
     Hash hash;
