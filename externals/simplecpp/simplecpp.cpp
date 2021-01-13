@@ -1880,7 +1880,6 @@ namespace simplecpp {
             }
 
             const Token *nextTok = B->next;
-
             if (varargs && tokensB.empty() && tok->previous->str() == ",")
                 output->deleteToken(A);
             else if (strAB != "," && macros.find(strAB) == macros.end()) {
@@ -1888,6 +1887,11 @@ namespace simplecpp {
                 for (Token *b = tokensB.front(); b; b = b->next)
                     b->location = loc;
                 output->takeTokens(tokensB);
+            } else if (nextTok->op == '#' && nextTok->next->op == '#') {
+                TokenList output2(files);
+                output2.push_back(new Token(strAB, tok->location));
+                nextTok = expandHashHash(&output2, loc, nextTok, macros, expandedmacros, parametertokens);
+                output->takeTokens(output2);
             } else {
                 output->deleteToken(A);
                 TokenList tokens(files);
@@ -2187,19 +2191,14 @@ namespace simplecpp {
                 continue;
             }
             // get previous subpath
-            std::string::size_type pos1 = path.rfind('/', pos - 1U);
-            if (pos1 == std::string::npos) {
-                pos1 = 0;
-            } else {
-                pos1 += 1U;
-            }
-            const std::string previousSubPath = path.substr(pos1, pos - pos1);
+            const std::string::size_type pos1 = path.rfind('/', pos - 1U) + 1U;
+            const std::string previousSubPath = path.substr(pos1, pos-pos1);
             if (previousSubPath == "..") {
                 // don't simplify
                 ++pos;
             } else {
                 // remove previous subpath and ".."
-                path.erase(pos1, pos - pos1 + 4);
+                path.erase(pos1,pos-pos1+4);
                 if (path.empty())
                     path = ".";
                 // update pos
