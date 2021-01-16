@@ -1687,6 +1687,31 @@ static bool isAliasOf(const Variable * var, const Token *tok, nonneg int varid, 
     return false;
 }
 
+static bool isAliasOf(const Variable * var, const Token *tok, nonneg int varid, const ValueFlow::Value& val, bool* inconclusive = nullptr)
+{
+    if (tok->varId() == varid)
+        return false;
+    if (tok->varId() == 0)
+        return false;
+    if (isAliasOf(tok, varid, inconclusive))
+        return true;
+    if (var && !var->isPointer())
+        return false;
+    if (!val.isNonValue())
+        return false;
+    if (val.isInconclusive())
+        return false;
+    if (val.isLifetimeValue() && !val.isLocalLifetimeValue())
+        return false;
+    if (val.isLifetimeValue() && val.lifetimeKind != ValueFlow::Value::LifetimeKind::Address)
+        return false;
+    if (!Token::Match(val.tokvalue, ".|&|*|%var%"))
+        return false;
+    if (astHasVar(val.tokvalue, tok->varId()))
+        return true;
+    return false;
+}
+
 static const ValueFlow::Value* getKnownValue(const Token* tok, ValueFlow::Value::ValueType type)
 {
     if (!tok)
@@ -2066,7 +2091,7 @@ struct SingleValueFlowAnalyzer : ValueFlowAnalyzer {
                 const Variable* var = p.second;
                 if (tok->varId() == varid)
                     return true;
-                if (isAliasOf(var, tok, varid, {value}, &inconclusive))
+                if (isAliasOf(var, tok, varid, value, &inconclusive))
                     return true;
             }
         }
