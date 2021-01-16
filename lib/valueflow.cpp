@@ -1658,6 +1658,18 @@ static bool evalAssignment(ValueFlow::Value &lhsValue, const std::string &assign
     return true;
 }
 
+template<typename T>
+T * ptr(T & obj)
+{
+    return &obj;    //turn reference into pointer!
+}
+
+template<typename T>
+T * ptr(T * obj)
+{
+    return obj;    //obj is already pointer, return it!
+}
+
 // Check if its an alias of the variable or is being aliased to this variable
 template <typename Container>
 static bool isAliasOf(const Variable * var, const Token *tok, nonneg int varid, const Container& values, bool* inconclusive = nullptr)
@@ -1671,18 +1683,19 @@ static bool isAliasOf(const Variable * var, const Token *tok, nonneg int varid, 
     if (var && !var->isPointer())
         return false;
     // Search through non value aliases
-    for (const ValueFlow::Value &val : values) {
-        if (!val.isNonValue())
+    for (const auto& v : values) {
+        const ValueFlow::Value* val=ptr(v);
+        if (!val->isNonValue())
             continue;
-        if (val.isInconclusive())
+        if (val->isInconclusive())
             continue;
-        if (val.isLifetimeValue() && !val.isLocalLifetimeValue())
+        if (val->isLifetimeValue() && !val->isLocalLifetimeValue())
             continue;
-        if (val.isLifetimeValue() && val.lifetimeKind != ValueFlow::Value::LifetimeKind::Address)
+        if (val->isLifetimeValue() && val->lifetimeKind != ValueFlow::Value::LifetimeKind::Address)
             continue;
-        if (!Token::Match(val.tokvalue, ".|&|*|%var%"))
+        if (!Token::Match(val->tokvalue, ".|&|*|%var%"))
             continue;
-        if (astHasVar(val.tokvalue, tok->varId()))
+        if (astHasVar(val->tokvalue, tok->varId()))
             return true;
     }
     return false;
@@ -2067,7 +2080,7 @@ struct SingleValueFlowAnalyzer : ValueFlowAnalyzer {
                 const Variable* var = p.second;
                 if (tok->varId() == varid)
                     return true;
-                std::array<ValueFlow::Value, 1> v{value};
+                std::array<const ValueFlow::Value*, 1> v{&value};
                 if (isAliasOf(var, tok, varid, v, &inconclusive))
                     return true;
             }
