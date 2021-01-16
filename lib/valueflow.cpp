@@ -1659,7 +1659,8 @@ static bool evalAssignment(ValueFlow::Value &lhsValue, const std::string &assign
 }
 
 // Check if its an alias of the variable or is being aliased to this variable
-static bool isAliasOf(const Variable * var, const Token *tok, nonneg int varid, const std::list<ValueFlow::Value>& values, bool* inconclusive = nullptr)
+template <typename Container>
+static bool isAliasOf(const Variable * var, const Token *tok, nonneg int varid, const Container& values, bool* inconclusive = nullptr)
 {
     if (tok->varId() == varid)
         return false;
@@ -1684,31 +1685,6 @@ static bool isAliasOf(const Variable * var, const Token *tok, nonneg int varid, 
         if (astHasVar(val.tokvalue, tok->varId()))
             return true;
     }
-    return false;
-}
-
-static bool isAliasOf(const Variable * var, const Token *tok, nonneg int varid, const ValueFlow::Value& val, bool* inconclusive = nullptr)
-{
-    if (tok->varId() == varid)
-        return false;
-    if (tok->varId() == 0)
-        return false;
-    if (isAliasOf(tok, varid, inconclusive))
-        return true;
-    if (var && !var->isPointer())
-        return false;
-    if (!val.isNonValue())
-        return false;
-    if (val.isInconclusive())
-        return false;
-    if (val.isLifetimeValue() && !val.isLocalLifetimeValue())
-        return false;
-    if (val.isLifetimeValue() && val.lifetimeKind != ValueFlow::Value::LifetimeKind::Address)
-        return false;
-    if (!Token::Match(val.tokvalue, ".|&|*|%var%"))
-        return false;
-    if (astHasVar(val.tokvalue, tok->varId()))
-        return true;
     return false;
 }
 
@@ -2091,7 +2067,8 @@ struct SingleValueFlowAnalyzer : ValueFlowAnalyzer {
                 const Variable* var = p.second;
                 if (tok->varId() == varid)
                     return true;
-                if (isAliasOf(var, tok, varid, value, &inconclusive))
+                std::array<ValueFlow::Value, 1> v{value};
+                if (isAliasOf(var, tok, varid, v, &inconclusive))
                     return true;
             }
         }
