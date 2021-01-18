@@ -931,6 +931,14 @@ int CppCheckExecutor::check_internal(CppCheck& cppcheck, int /*argc*/, const cha
             // filesettings
             // check all files of the project
             for (const ImportProject::FileSettings &fs : settings.project.fileSettings) {
+                if (!mFiles.empty() &&
+                    std::none_of(
+                        mFiles.begin(), mFiles.end(),
+                [=](std::pair<std::string, std::size_t> p) {
+                return Path::getAbsoluteFilePath(p.first) ==
+                           Path::getAbsoluteFilePath(fs.filename);
+                }))
+                continue;
                 returnValue += cppcheck.check(fs);
                 ++c;
                 if (!settings.quiet)
