@@ -1347,7 +1347,7 @@ static bool if_findCompare(const Token * const tokBack, bool stdStringLike)
         return true;
     if (tok->isComparisonOp()) {
         if (stdStringLike) {
-            const Token * const tokOther = (tok->astOperand1() == tokBack) ? tok->astOperand2(): tok->astOperand1();
+            const Token * const tokOther = tokBack->astSibling();
             return !tokOther->hasKnownIntValue() || tokOther->getKnownIntValue() != 0;
         }
         return (!tok->astOperand1()->isNumber() && !tok->astOperand2()->isNumber());
